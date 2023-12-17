@@ -7,6 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1SJZC5xCfp4Tb7j3glS91tWgxUfwfKVWE
 """
 
+# Import Libraries:
 !pip install -U tensorflow-addons
 
 import numpy as np
@@ -19,8 +20,10 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.keras.utils import plot_model
 
+# Create Dummy Image Data
 img = np.zeros((3, 4, 4, 1))
 
+# Assign Image Data:
 img[0][..., 0] = np.array([[69, 72, 70, 72],
                 [63, 96, 71, 70],
                 [44, 158, 37, 24],
@@ -36,9 +39,11 @@ img[2][..., 0] = np.array([[138, 33, 211, 233],
                 [235, 161, 12, 72],
                 [165, 170, 35, 80]])
 
+# Assign Labels:
 y = np.array([0, 1, 2])
 labels = ["Cat", "Dog", "Bird"]
 
+# Define Hyperparameters:
 learning_rate = 0.001
 weight_decay = 0.0001
 batch_size = 256
@@ -55,6 +60,7 @@ mlp_head_units = [4, 2]
 
 num_train_images = img.shape[0]
 
+# Define Patches Layer and implementation of it:
 class Patches(layers.Layer):
 	def __init__(self, patch_size):
 		super(Patches, self).__init__()
@@ -74,8 +80,11 @@ class Patches(layers.Layer):
 				tf.print(patches[i, j], summarize = -1)
 		return patches
 
+# Create Patches Layer Instance:
+# Creates an instance of the Patches layer and applies it to the input images.
 patches = Patches(patch_size)(img)
 
+# Define PatchEncoder Layer and implementation of it:
 class PatchEncoder(layers.Layer):
 	def __init__(self, num_patches, projection_dim):
 		super(PatchEncoder, self).__init__()
@@ -99,14 +108,17 @@ class PatchEncoder(layers.Layer):
 		tf.print("\n\nEncoded Patches got After Adding Positional Encoding with Projected Patches:\n-----\n", encoded, "\n", summarize = -1)
 		return encoded
 
+# Create PatchEncoder Layer Instance:
+# Creates an instance of the PatchEncoder layer and applies it to the extracted patches.
 encoded_patches = PatchEncoder(num_patches, projection_dim)(patches)
 
+# Define Transformer Blocks
+# Defines transformer blocks, including multi-head attention, layer normalization, and multi-layer perceptron (MLP).
 x1 = layers.LayerNormalization(epsilon=1e-6)(encoded_patches)
 
 attention_output = layers.MultiHeadAttention(num_heads=num_heads, key_dim=projection_dim, dropout=0.1)(x1, x1)
 
 x2 = layers.Add()([attention_output, encoded_patches])
-
 x3 = layers.LayerNormalization(epsilon=1e-6)(x2)
 
 GeluDense = layers.Dense(units = 8, activation = tf.nn.gelu)
@@ -124,9 +136,7 @@ x3_4 = Drop02(x3_3, training = True)
 encoded_patches = layers.Add()([x3, x2])
 
 representation = layers.LayerNormalization(epsilon=1e-6)(encoded_patches)
-
 representation = layers.Flatten()(representation)
-
 representation = layers.Dropout(0.5)(representation)
 
 def mlp(x, hidden_units, dropout_rate):
@@ -195,4 +205,4 @@ tf.print("Prediction:\n", predictions, summarize = -1)
 print("Predicting Using The Logits\n")
 for i, prediction in enumerate(predictions):
   predicted_index = np.argmax(prediction)
-  print(f'Predicted on Image {i+1}: {labels[predicted_index]}')
+  print(f'Predicted on Image {i+1}: {labels[predicted_index]}') 
